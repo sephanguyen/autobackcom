@@ -1,0 +1,2 @@
+2 vấn đè hiện tại, nếu gọi hàm renew listenKey bị lỗi thực hiện hành động cấp mới
+vấn đề thứ 2 sync lại data trade sau khi resstart
