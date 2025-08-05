@@ -6,7 +6,7 @@ type User struct {
 	ID                  primitive.ObjectID `bson:"_id"`
 	Username            string             `bson:"username"`
 	Exchange            string             `bson:"exchange"`
-	Markets             []string           `bson:"markets"`
+	Market              string             `bson:"market"`
 	EncryptedAPIKey     string             `bson:"encrypted_api_key"`
 	EncryptedSecret     string             `bson:"encrypted_secret"`
 	EncryptedPassphrase string             `bson:"encrypted_passphrase,omitempty"` // Thêm cho OKX

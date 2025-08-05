@@ -60,11 +60,11 @@ func JWTAuthMiddleware(next http.Handler) http.Handler {
 func RegisterHandler(userRepo *repositories.UserRepository, exchangeService *services.ExchangeService) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		var req struct {
-			Username string   `json:"username"`
-			Exchange string   `json:"exchange"`
-			Markets  []string `json:"markets"`
-			APIKey   string   `json:"api_key"`
-			Secret   string   `json:"secret"`
+			Username string `json:"username"`
+			Exchange string `json:"exchange"`
+			Market   string `json:"market"`
+			APIKey   string `json:"apikey"`
+			Secret   string `json:"secret"`
 		}
 		err := json.NewDecoder(r.Body).Decode(&req)
 		if err != nil {
@@ -88,7 +88,7 @@ func RegisterHandler(userRepo *repositories.UserRepository, exchangeService *ser
 			ID:              primitive.NewObjectID(),
 			Username:        req.Username,
 			Exchange:        req.Exchange,
-			Markets:         req.Markets,
+			Market:          req.Market,
 			EncryptedAPIKey: encryptedAPIKey,
 			EncryptedSecret: encryptedSecret,
 		}

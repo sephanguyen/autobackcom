@@ -15,11 +15,14 @@ type Order struct {
 	Status           string             `bson:"status"`
 	Side             string             `bson:"side"`
 	Type             string             `bson:"type"`
-	Price            float64            `bson:"price"`
-	Quantity         float64            `bson:"quantity"`
-	ExecutedQuantity float64            `bson:"executed_quantity"`
-	AvgPrice         float64            `bson:"avg_price"`
+	Price            string             `bson:"price"`
+	Quantity         string             `bson:"quantity"`
+	ExecutedQuantity string             `bson:"executed_quantity"`
+	AvgPrice         string             `bson:"avg_price"`
 	Time             time.Time          `bson:"time"`
-	Commission       float64            `bson:"commission"`
+	Commission       string             `bson:"commission"`
 	CommissionAsset  string             `bson:"commission_asset"`
+	OrderID          int64              `bson:"order_id"`
+	OrderListId      int64              `bson:"order_list_id"`
+	QuoteQuantity    string             `bson:"quote_quantity,omitempty"`
 }
