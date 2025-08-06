@@ -39,12 +39,12 @@ func (r *UserRepository) GetUser(userID string) (models.User, error) {
 	return user, err
 }
 
-func (r *UserRepository) GetAllUsers() ([]models.User, error) {
+func (r *UserRepository) GetAllUsers(ctx context.Context) ([]models.User, error) {
 	var users []models.User
-	cursor, err := r.collection.Find(context.Background(), bson.M{})
+	cursor, err := r.collection.Find(ctx, bson.M{})
 	if err != nil {
 		return nil, err
 	}
-	err = cursor.All(context.Background(), &users)
+	err = cursor.All(ctx, &users)
 	return users, err
 }

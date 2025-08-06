@@ -1,56 +1,52 @@
 package services
 
 import (
-	"autobackcom/internal/exchanges"
-	"autobackcom/internal/models"
+	"autobackcom/internal/repositories"
 	"context"
 	"log"
 	"time"
-
-	"go.mongodb.org/mongo-driver/bson"
-	"go.mongodb.org/mongo-driver/mongo"
 )
 
 type TradeHistoryService struct {
-	UserCollection  *mongo.Collection
-	OrderCollection *mongo.Collection
-	StreamHandler   exchanges.StreamHandler
+	userRepository  *repositories.UserRepository
+	orderRepository *repositories.OrderRepository
+	clientManager   *ClientManagerService
 }
 
-func NewTradeHistoryService(userCol, orderCol *mongo.Collection, handler exchanges.StreamHandler) *TradeHistoryService {
+func NewTradeHistoryService(userRepository *repositories.UserRepository, orderRepository *repositories.OrderRepository, clientManager *ClientManagerService) *TradeHistoryService {
 	return &TradeHistoryService{
-		UserCollection:  userCol,
-		OrderCollection: orderCol,
-		StreamHandler:   handler,
+		userRepository:  userRepository,
+		orderRepository: orderRepository,
+		clientManager:   clientManager,
 	}
 }
 
 // Cronjob function
 func (s *TradeHistoryService) FetchAllUserTradeHistory(ctx context.Context, start, end time.Time) error {
-	cursor, err := s.UserCollection.Find(ctx, bson.M{})
+	users, err := s.userRepository.GetAllUsers(ctx)
 	if err != nil {
 		return err
 	}
-	defer cursor.Close(ctx)
 
-	for cursor.Next(ctx) {
-		var user models.User
-		if err := cursor.Decode(&user); err != nil {
-			log.Println("Decode user error:", err)
-			continue
-		}
-		orders, err := s.StreamHandler.FetchOrders(ctx, &user, start, end)
+	for _, user := range users {
+		clientsInfo, err := s.clientManager.GetOrCreateClient(user)
 		if err != nil {
-			log.Println("FetchOrders error for user", user.Username, ":", err)
+			log.Printf("Get client error %s: %v", user.Username, err)
 			continue
 		}
-		// Save orders to DB
-		for _, order := range orders {
-			_, err := s.OrderCollection.InsertOne(ctx, order)
+		for _, client := range clientsInfo.Clients {
+			orders, err := client.FetchTrades(ctx, user.ID, start, end)
 			if err != nil {
-				log.Println("Insert order error:", err)
+				log.Println("FetchOrders error for user", user.Username, ":", err)
+				continue
+			}
+			// Save orders to DB
+			err = s.orderRepository.SaveOrders(orders)
+			if err != nil {
+				log.Println("Save orders error:", err)
 			}
 		}
+
 	}
 	return nil
 }

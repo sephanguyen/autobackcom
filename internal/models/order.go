@@ -14,6 +14,7 @@ type Order struct {
 	Symbol           string             `bson:"symbol"`
 	Status           string             `bson:"status"`
 	Side             string             `bson:"side"`
+	PositionSide     string             `bson:"position_side"`
 	Type             string             `bson:"type"`
 	Price            string             `bson:"price"`
 	Quantity         string             `bson:"quantity"`

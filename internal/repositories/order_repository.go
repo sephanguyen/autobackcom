@@ -28,6 +28,18 @@ func (r *OrderRepository) SaveOrder(order models.Order) error {
 	return err
 }
 
+func (r *OrderRepository) SaveOrders(orders []models.Order) error {
+	documents := make([]interface{}, len(orders))
+	for i := range orders {
+		documents[i] = orders[i]
+	}
+	_, err := r.collection.InsertMany(context.Background(), documents)
+	if err != nil {
+		logrus.WithField("error", err).Error("Failed to save order")
+	}
+	return err
+}
+
 func (r *OrderRepository) GetOrdersByUserID(userID primitive.ObjectID) ([]models.Order, error) {
 	var orders []models.Order
 	cursor, err := r.collection.Find(context.Background(), bson.M{"user_id": userID})
