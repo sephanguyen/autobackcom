@@ -1,2 +1,13 @@
 2 vấn đè hiện tại, nếu gọi hàm renew listenKey bị lỗi thực hiện hành động cấp mới
 vấn đề thứ 2 sync lại data trade sau khi resstart
+
+
+mongo.IndexModel{
+    Keys: bson.D{
+        {Key: "orderID", Value: 1},
+        {Key: "exchange", Value: 1},
+        {Key: "market", Value: 1},
+    },
+    Options: options.Index().SetUnique(true),
+}
+r.collection.Indexes().CreateOne(context.Background(), indexModel)
