@@ -21,11 +21,15 @@ func NewBinanceSpotExchange(apiKey, secret string) *BinanceSpotExchange {
 	return &BinanceSpotExchange{client: client}
 }
 
-func (b *BinanceSpotExchange) FetchTrades(ctx context.Context, userID primitive.ObjectID, start, end time.Time) ([]models.Order, error) {
+func (b *BinanceSpotExchange) FetchTrades(ctx context.Context, userID primitive.ObjectID, start time.Time) ([]models.Order, error) {
 	// Giả sử Client đã được khởi tạo với API key/secret đã giải mã từ user
 	svc := b.client.NewListTradesService()
 	// Có thể cần truyền thêm symbol, startTime, endTime nếu muốn lọc theo thời gian
 	// svc.Symbol("BTCUSDT").StartTime(start.UnixMilli()).EndTime(end.UnixMilli())
+	if !start.IsZero() {
+		svc.StartTime(start.UnixMilli())
+	}
+	svc.Limit(1000)
 	trades, err := svc.Do(ctx)
 	if err != nil {
 		log.Printf("Failed to fetch Binance spot trade history for user %s: %v", userID, err)

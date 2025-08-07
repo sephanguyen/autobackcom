@@ -9,5 +9,5 @@ import (
 )
 
 type ExchangeFetcher interface {
-	FetchTrades(ctx context.Context, userID primitive.ObjectID, start, end time.Time) ([]models.Order, error)
+	FetchTrades(ctx context.Context, userID primitive.ObjectID, start time.Time) ([]models.Order, error)
 }

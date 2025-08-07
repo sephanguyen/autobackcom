@@ -29,6 +29,22 @@ func (r *OrderRepository) SaveOrder(order models.Order) error {
 	return err
 }
 
+// Lấy order mới nhất theo user, exchange, market
+func (r *OrderRepository) GetLatestOrder(ctx context.Context, userID primitive.ObjectID, exchange, market string) (*models.Order, error) {
+	filter := bson.M{
+		"user_id":  userID,
+		"exchange": exchange,
+		"market":   market,
+	}
+	opt := options.FindOne().SetSort(bson.D{{"time", -1}})
+	var order models.Order
+	err := r.collection.FindOne(ctx, filter, opt).Decode(&order)
+	if err != nil {
+		return nil, err
+	}
+	return &order, nil
+}
+
 func (r *OrderRepository) SaveOrders(orders []models.Order) error {
 	if len(orders) == 0 {
 		return nil

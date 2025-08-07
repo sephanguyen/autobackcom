@@ -60,6 +60,7 @@ func createClient(exchange, market string, user models.User) (exchanges.Exchange
 		log.Printf("Decrypt secret error for user %s: %v", user.Username, err)
 		return nil, err
 	}
+	fmt.Println("Creating client for user:", user.Username, "Exchange:", exchange, "Market:", market)
 	switch exchange {
 	case "binance":
 		switch market {
@@ -136,8 +137,20 @@ func (s *ClientManagerService) InvalidateClient(userID primitive.ObjectID) {
 }
 
 // CleanupClients xóa các client hết hạn
-func (s *ClientManagerService) CleanupClients(maxAge time.Duration) {
+func (s *ClientManagerService) CleanupClients() {
 	s.clientCache.DeleteExpired()
+	s.mutex.Lock()
+	for cacheKey := range s.mutexes {
+		if _, found := s.clientCache.Get(cacheKey); !found {
+			delete(s.mutexes, cacheKey)
+		}
+	}
+	s.mutex.Unlock()
+}
+
+// CleanupClients xóa các client hết hạn
+func (s *ClientManagerService) Clean() {
+	s.clientCache.Flush()
 	s.mutex.Lock()
 	for cacheKey := range s.mutexes {
 		if _, found := s.clientCache.Get(cacheKey); !found {

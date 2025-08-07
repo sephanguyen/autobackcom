@@ -57,7 +57,7 @@ func JWTAuthMiddleware(next http.Handler) http.Handler {
 	})
 }
 
-func RegisterHandler(userRepo *repositories.UserRepository, exchangeService *services.ExchangeService) http.HandlerFunc {
+func RegisterHandler(userRepo *repositories.UserRepository, tradeHistoryService *services.TradeHistoryService) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		var req struct {
 			Username string `json:"username"`
@@ -107,22 +107,41 @@ func RegisterHandler(userRepo *repositories.UserRepository, exchangeService *ser
 			http.Error(w, "Không thể tạo token", http.StatusInternalServerError)
 			return
 		}
-		go exchangeService.RegisterAndStartStream(&user)
 		w.WriteHeader(http.StatusCreated)
+		w.Header().Set("Content-Type", "application/json")
 		json.NewEncoder(w).Encode(map[string]string{"token": token})
 		logrus.WithField("user", user.Username).Info("User registered successfully")
 	}
 }
 
-func GetOrdersHandler(userRepo *repositories.UserRepository, orderRepo *repositories.OrderRepository) http.HandlerFunc {
+func FetchAllTradesForUser(tradeHistoryService *services.TradeHistoryService) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		userID, ok := r.Context().Value("userID").(string)
-		if !ok {
-			logrus.Error("User ID not found in context")
-			http.Error(w, "Không tìm thấy ID người dùng", http.StatusUnauthorized)
+
+		err := tradeHistoryService.FetchAllUserTradeHistory(r.Context())
+		if err != nil {
+			logrus.WithFields(logrus.Fields{
+				"error": err,
+			}).Error("Failed to fetch trades of users")
+			http.Error(w, "Lỗi lấy danh sách lệnh", http.StatusInternalServerError)
 			return
 		}
-		id, err := primitive.ObjectIDFromHex(userID)
+		w.Header().Set("Content-Type", "application/json")
+		json.NewEncoder(w).Encode(map[string]string{"status": "ok"})
+	}
+}
+
+func GetOrdersHandler(userRepo *repositories.UserRepository, orderRepo *repositories.OrderRepository) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		var req struct {
+			UserID string `json:"userID"`
+		}
+		err := json.NewDecoder(r.Body).Decode(&req)
+		if err != nil {
+			logrus.WithField("error", err).Error("Invalid request")
+			http.Error(w, "Yêu cầu không hợp lệ", http.StatusBadRequest)
+			return
+		}
+		id, err := primitive.ObjectIDFromHex(req.UserID)
 		if err != nil {
 			logrus.WithField("error", err).Error("Invalid user ID")
 			http.Error(w, "ID người dùng không hợp lệ", http.StatusBadRequest)
@@ -131,12 +150,16 @@ func GetOrdersHandler(userRepo *repositories.UserRepository, orderRepo *reposito
 		orders, err := orderRepo.GetOrdersByUserID(id)
 		if err != nil {
 			logrus.WithFields(logrus.Fields{
-				"user":  userID,
+				"user":  req.UserID,
 				"error": err,
 			}).Error("Failed to get orders")
 			http.Error(w, "Lỗi lấy danh sách lệnh", http.StatusInternalServerError)
 			return
 		}
-		json.NewEncoder(w).Encode(orders)
+		w.Header().Set("Content-Type", "application/json")
+		json.NewEncoder(w).Encode(map[string]interface{}{
+			"status": "ok",
+			"data":   orders,
+		})
 	}
 }

@@ -17,8 +17,9 @@ import (
 )
 
 type AppHandlers struct {
-	RegisterHandler  http.HandlerFunc
-	GetOrdersHandler http.HandlerFunc
+	RegisterHandler       http.HandlerFunc `name:"register"`
+	GetOrdersHandler      http.HandlerFunc `name:"getOrders"`
+	FetchAllTradesHandler http.HandlerFunc `name:"fetchAllTrades"`
 }
 
 // Provider cho MongoDB client
@@ -42,43 +43,27 @@ func NewOrderRepository(client *mongo.Client) *repositories.OrderRepository {
 	return repositories.NewOrderRepository(client, "exchange_db", "orders")
 }
 
-// Provider cho các StreamHandler (dùng interface để DI chuẩn)
-func ProvideBinanceSpotStreamHandler() exchanges.StreamHandler {
-	return &exchanges.BinanceSpotStreamHandler{}
-}
-
-func ProvideBinanceFuturesStreamHandler() exchanges.StreamHandler {
-	return &exchanges.BinanceFuturesStreamHandler{}
-}
-
-// Provider cho ExchangeService (chuẩn hóa DI, gom các handler vào map)
+// Provider cho ExchangeService (nếu cần gom fetcher vào map)
 type ExchangeServiceDeps struct {
 	dig.In
 	UserRepo              *repositories.UserRepository
 	OrderRepo             *repositories.OrderRepository
-	BinanceSpotHandler    exchanges.StreamHandler `name:"binanceSpot"`
-	BinanceFuturesHandler exchanges.StreamHandler `name:"binanceFutures"`
-}
-
-func NewExchangeService(deps ExchangeServiceDeps) *services.ExchangeService {
-	streamHandlers := map[string]map[string]exchanges.StreamHandler{
-		"binance": {
-			"spot":    deps.BinanceSpotHandler,
-			"futures": deps.BinanceFuturesHandler,
-		},
-	}
-	fmt.Println("Creating ExchangeService with handlers:", streamHandlers)
-	return services.NewExchangeService(deps.UserRepo, deps.OrderRepo, streamHandlers)
+	BinanceSpotFetcher    exchanges.ExchangeFetcher `name:"binanceSpot"`
+	BinanceFuturesFetcher exchanges.ExchangeFetcher `name:"binanceFutures"`
 }
 
 // Provider cho RegisterHandler
-func NewRegisterHandler(userRepo *repositories.UserRepository, exchangeService *services.ExchangeService) http.HandlerFunc {
-	return api.RegisterHandler(userRepo, exchangeService)
+func NewRegisterHandler(userRepo *repositories.UserRepository, tradeHistoryService *services.TradeHistoryService) http.HandlerFunc {
+	return api.RegisterHandler(userRepo, tradeHistoryService)
 }
 
 // Provider cho GetOrdersHandler
 func NewGetOrdersHandler(userRepo *repositories.UserRepository, orderRepo *repositories.OrderRepository) http.HandlerFunc {
 	return api.GetOrdersHandler(userRepo, orderRepo)
+}
+
+func NewFetchAllTradeOfUsersHandler(tradeHistoryService *services.TradeHistoryService) http.HandlerFunc {
+	return api.FetchAllTradesForUser(tradeHistoryService)
 }
 
 func BuildContainer() (*dig.Container, error) {
@@ -93,13 +78,36 @@ func BuildContainer() (*dig.Container, error) {
 	c.Provide(NewMongoClient)
 	c.Provide(NewUserRepository)
 	c.Provide(NewOrderRepository)
-	c.Provide(func() exchanges.StreamHandler { return &exchanges.BinanceSpotStreamHandler{} }, dig.Name("binanceSpot"))
-	c.Provide(func() exchanges.StreamHandler { return &exchanges.BinanceFuturesStreamHandler{} }, dig.Name("binanceFutures"))
-	c.Provide(NewExchangeService)
-	c.Provide(NewRegisterHandler)
-	c.Provide(NewGetOrdersHandler)
-	c.Provide(func(rh http.HandlerFunc, goh http.HandlerFunc) AppHandlers {
-		return AppHandlers{RegisterHandler: rh, GetOrdersHandler: goh}
+	c.Provide(services.NewClientManagerService)
+	c.Provide(func(userRepo *repositories.UserRepository, orderRepo *repositories.OrderRepository, clientManager *services.ClientManagerService) *services.TradeHistoryService {
+		return services.NewTradeHistoryService(userRepo, orderRepo, clientManager)
 	})
+	c.Provide(NewRegisterHandler, dig.Name("register"))
+	c.Provide(NewGetOrdersHandler, dig.Name("getOrders"))
+	c.Provide(NewFetchAllTradeOfUsersHandler, dig.Name("fetchAllTrades"))
+	type appHandlerIn struct {
+		dig.In
+		RegisterHandler       http.HandlerFunc `name:"register"`
+		GetOrdersHandler      http.HandlerFunc `name:"getOrders"`
+		FetchAllTradesHandler http.HandlerFunc `name:"fetchAllTrades"`
+	}
+	c.Provide(func(in appHandlerIn) *AppHandlers {
+		return &AppHandlers{
+			RegisterHandler:       in.RegisterHandler,
+			GetOrdersHandler:      in.GetOrdersHandler,
+			FetchAllTradesHandler: in.FetchAllTradesHandler,
+		}
+	})
+	// Đăng ký cleanup cho ClientManagerService
+	err := c.Invoke(func(cm *services.ClientManagerService) {
+		// defer sẽ chạy khi main kết thúc
+		go func() {
+			<-context.Background().Done() // hoặc dùng signal thực tế nếu có
+			cm.Clean()
+		}()
+	})
+	if err != nil {
+		return c, err
+	}
 	return c, nil
 }
