@@ -16,7 +16,7 @@ import (
 
 // ClientsInfo chứa các client cho một user, theo cặp exchange/market
 type ClientsInfo struct {
-	Clients   map[string]exchanges.ExchangeClient // Key: "exchange:market"
+	Clients   map[string]exchanges.ExchangeFetcher // Key: "exchange:market"
 	CreatedAt time.Time
 }
 
@@ -49,7 +49,7 @@ func (s *ClientManagerService) getUserMutex(userID string) *sync.RWMutex {
 }
 
 // createClient tạo client dựa trên exchange và market
-func createClient(exchange, market string, user models.User) (exchanges.ExchangeClient, error) {
+func createClient(exchange, market string, user models.User) (exchanges.ExchangeFetcher, error) {
 	apiKey, err := utils.Decrypt(user.EncryptedAPIKey)
 	if err != nil {
 		log.Printf("Decrypt key error for user %s: %v", user.Username, err)
@@ -119,7 +119,7 @@ func (s *ClientManagerService) GetOrCreateClient(user models.User) (*ClientsInfo
 		return nil, err
 	}
 	clientPair := &ClientsInfo{
-		Clients:   map[string]exchanges.ExchangeClient{clientKey: client},
+		Clients:   map[string]exchanges.ExchangeFetcher{clientKey: client},
 		CreatedAt: time.Now(),
 	}
 	s.clientCache.Set(cacheKey, clientPair, cache.DefaultExpiration)

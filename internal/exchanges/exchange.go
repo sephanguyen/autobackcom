@@ -8,6 +8,6 @@ import (
 	"go.mongodb.org/mongo-driver/bson/primitive"
 )
 
-type ExchangeClient interface {
+type ExchangeFetcher interface {
 	FetchTrades(ctx context.Context, userID primitive.ObjectID, start, end time.Time) ([]models.Order, error)
 }
