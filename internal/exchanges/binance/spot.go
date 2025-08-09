@@ -15,8 +15,8 @@ type BinanceSpotExchange struct {
 	client *binance.Client
 }
 
-func NewBinanceSpotExchange(apiKey, secret string) *BinanceSpotExchange {
-	binance.UseTestnet = true
+func NewBinanceSpotExchange(apiKey, secret string, isTestnet bool) *BinanceSpotExchange {
+	binance.UseTestnet = isTestnet
 	client := binance.NewClient(apiKey, secret)
 	return &BinanceSpotExchange{client: client}
 }

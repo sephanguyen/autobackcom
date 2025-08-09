@@ -65,9 +65,9 @@ func createClient(exchange, market string, user models.User) (exchanges.Exchange
 	case "binance":
 		switch market {
 		case "spot":
-			return binance.NewBinanceSpotExchange(apiKey, secret), nil
+			return binance.NewBinanceSpotExchange(apiKey, secret, user.IsTestnet), nil
 		case "futures":
-			return binance.NewBinanceFetureExchange(apiKey, secret), nil
+			return binance.NewBinanceFetureExchange(apiKey, secret, user.IsTestnet), nil
 		default:
 			return nil, fmt.Errorf("unsupported market: %s for exchange: %s", market, exchange)
 		}

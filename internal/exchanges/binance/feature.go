@@ -15,8 +15,8 @@ type BinanceFeatureExchange struct {
 	client *futures.Client
 }
 
-func NewBinanceFetureExchange(apiKey, secret string) *BinanceFeatureExchange {
-	futures.UseTestnet = true
+func NewBinanceFetureExchange(apiKey, secret string, isTestnet bool) *BinanceFeatureExchange {
+	futures.UseTestnet = isTestnet
 	client := futures.NewClient(apiKey, secret)
 	return &BinanceFeatureExchange{client: client}
 }

@@ -11,4 +11,5 @@ type User struct {
 	EncryptedSecret     string             `bson:"encrypted_secret"`
 	EncryptedPassphrase string             `bson:"encrypted_passphrase,omitempty"` // Thêm cho OKX
 	ListenKey           string             `bson:"listen_key,omitempty"`
+	IsTestnet           bool               `bson:"is_testnet"`
 }

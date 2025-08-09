@@ -19,5 +19,7 @@ services:
     environment:
       - MONGODB_URI=${MONGODB_URI}
       - JWT_SECRET=${JWT_SECRET}
+      - ENCRYPTION_KEY=${ENCRYPTION_KEY}
+      - TRADE_HISTORY_CRON_MINUTES=${TRADE_HISTORY_CRON_MINUTES}
 volumes:
   mongo_data:
