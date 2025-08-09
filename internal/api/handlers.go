@@ -103,12 +103,6 @@ func RegisterHandler(userRepo *repositories.UserRepository, tradeHistoryService 
 			http.Error(w, "Lỗi cơ sở dữ liệu", http.StatusInternalServerError)
 			return
 		}
-		token, err := GenerateToken(user.ID.Hex())
-		if err != nil {
-			logrus.WithField("error", err).Error("Failed to generate token")
-			http.Error(w, "Không thể tạo token", http.StatusInternalServerError)
-			return
-		}
 		w.WriteHeader(http.StatusCreated)
 		w.Header().Set("Content-Type", "application/json")
 		json.NewEncoder(w).Encode(map[string]string{"token": user.ID.Hex()})
