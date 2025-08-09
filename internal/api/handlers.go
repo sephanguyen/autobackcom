@@ -105,7 +105,7 @@ func RegisterHandler(userRepo *repositories.UserRepository, tradeHistoryService 
 		}
 		w.WriteHeader(http.StatusCreated)
 		w.Header().Set("Content-Type", "application/json")
-		json.NewEncoder(w).Encode(map[string]string{"token": user.ID.Hex()})
+		json.NewEncoder(w).Encode(map[string]string{"userID": user.ID.Hex()})
 		logrus.WithField("user", user.Username).Info("User registered successfully")
 	}
 }
