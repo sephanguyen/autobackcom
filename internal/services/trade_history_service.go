@@ -44,16 +44,21 @@ func (s *TradeHistoryService) FetchAllAccountTradeHistory(ctx context.Context) e
 				<-accountsPool
 				accountWg.Done()
 			}()
-			// Lấy order mới nhất cho account-exchange-market
-			latestOrder, err := s.orderRepository.GetLatestOrder(ctx, accountCopy.ID, accountCopy.Exchange, accountCopy.Market)
-			var start time.Time
-			if err == nil && latestOrder != nil && !latestOrder.Time.IsZero() {
-				start = latestOrder.Time
-			}
-			s.handleAccountTradeHistory(ctx, accountCopy, start)
+			_ = s.FetchAllTradeHistory(ctx, accountCopy)
 		}(account)
 	}
 	accountWg.Wait()
+	return nil
+}
+
+// Fetch trade history cho một account
+func (s *TradeHistoryService) FetchAllTradeHistory(ctx context.Context, account models.RegisteredAccount) error {
+	var start time.Time
+	latestOrder, err := s.orderRepository.GetLatestOrder(ctx, account.ID, account.Exchange, account.Market)
+	if err == nil && latestOrder != nil && !latestOrder.Time.IsZero() {
+		start = latestOrder.Time
+	}
+	s.handleAccountTradeHistory(ctx, account, start)
 	return nil
 }
 
@@ -62,6 +67,7 @@ func (s *TradeHistoryService) handleAccountTradeHistory(ctx context.Context, acc
 	if err != nil {
 		log.Printf("Get client error %s: %v", account.Username, err)
 		return
+		// Fetch trade history cho một account
 	}
 	clientPoolSize := 3
 	clientPool := make(chan struct{}, clientPoolSize)

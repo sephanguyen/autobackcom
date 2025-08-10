@@ -56,6 +56,18 @@ func main() {
 	defer client.Disconnect(context.Background())
 
 	r := gin.Default()
+	// Thêm middleware CORS
+	r.Use(func(c *gin.Context) {
+		c.Writer.Header().Set("Access-Control-Allow-Origin", "*")
+		c.Writer.Header().Set("Access-Control-Allow-Credentials", "true")
+		c.Writer.Header().Set("Access-Control-Allow-Headers", "Content-Type,Authorization,X-Requested-With,X-MBX-APIKEY")
+		c.Writer.Header().Set("Access-Control-Allow-Methods", "GET,POST,PUT,DELETE,OPTIONS")
+		if c.Request.Method == "OPTIONS" {
+			c.AbortWithStatus(204)
+			return
+		}
+		c.Next()
+	})
 	r.POST("/register", appHandlers.RegisterHandler)
 	r.POST("/orders", appHandlers.GetOrdersHandler)
 	r.POST("/fetch-trades-all-user", appHandlers.FetchAllTradesHandler)

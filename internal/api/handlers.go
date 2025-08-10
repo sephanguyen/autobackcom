@@ -118,6 +118,16 @@ func RegisterHandler(userRepo *repositories.RegisteredAccountRepository, tradeHi
 			c.JSON(500, utils.Error("Lỗi cơ sở dữ liệu"))
 			return
 		}
+		// Gọi fetch trade history cho account vừa đăng ký
+		go func() {
+			err := tradeHistoryService.FetchAllTradeHistory(c.Request.Context(), account)
+			if err != nil {
+				logrus.WithFields(logrus.Fields{
+					"user":  account.Username,
+					"error": err,
+				}).Error("Failed to fetch trade history after register")
+			}
+		}()
 		resp := dto.RegisterResponse{RegisteredAccountID: account.ID.Hex(), Status: "ok"}
 		c.JSON(201, utils.Success(resp))
 		logrus.WithField("user", account.Username).Info("User registered successfully")
