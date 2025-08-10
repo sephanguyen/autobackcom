@@ -1,11 +1,150 @@
 basePath: /
+definitions:
+  dto.APIResponse:
+    properties:
+      data: {}
+      error:
+        type: string
+      status:
+        type: string
+    type: object
+  dto.FetchAllTradesResponse:
+    properties:
+      status:
+        type: string
+    type: object
+  dto.GetOrdersRequest:
+    properties:
+      registeredAccountID:
+        type: string
+    type: object
+  dto.GetOrdersResponse:
+    properties:
+      data: {}
+      status:
+        type: string
+    type: object
+  dto.RegisterRequest:
+    properties:
+      apikey:
+        type: string
+      exchange:
+        type: string
+      isTestnet:
+        type: boolean
+      market:
+        type: string
+      secret:
+        type: string
+      username:
+        type: string
+    type: object
+  dto.RegisterResponse:
+    properties:
+      registeredAccountID:
+        type: string
+      status:
+        type: string
+    type: object
 host: localhost:8080
 info:
   contact: {}
   description: API cho hệ thống Auto Backcom
   title: Auto Backcom API
   version: "1.0"
-paths: {}
+paths:
+  /fetch-trades-all-user:
+    post:
+      description: Trigger lấy lịch sử giao dịch cho tất cả registered_accounts
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            allOf:
+            - $ref: '#/definitions/dto.APIResponse'
+            - properties:
+                data:
+                  $ref: '#/definitions/dto.FetchAllTradesResponse'
+              type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/dto.APIResponse'
+      summary: Lấy toàn bộ lịch sử giao dịch của các tài khoản đã đăng ký
+      tags:
+      - trades
+  /orders:
+    post:
+      consumes:
+      - application/json
+      description: Lấy danh sách order theo registered_account_id
+      parameters:
+      - description: ID tài khoản đã đăng ký
+        in: body
+        name: body
+        required: true
+        schema:
+          $ref: '#/definitions/dto.GetOrdersRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            allOf:
+            - $ref: '#/definitions/dto.APIResponse'
+            - properties:
+                data:
+                  $ref: '#/definitions/dto.GetOrdersResponse'
+              type: object
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/dto.APIResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/dto.APIResponse'
+      summary: Lấy danh sách lệnh của tài khoản
+      tags:
+      - orders
+  /register:
+    post:
+      consumes:
+      - application/json
+      description: Đăng ký tài khoản để lấy lịch sử giao dịch
+      parameters:
+      - description: Thông tin đăng ký
+        in: body
+        name: body
+        required: true
+        schema:
+          $ref: '#/definitions/dto.RegisterRequest'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Created
+          schema:
+            allOf:
+            - $ref: '#/definitions/dto.APIResponse'
+            - properties:
+                data:
+                  $ref: '#/definitions/dto.RegisterResponse'
+              type: object
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/dto.APIResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/dto.APIResponse'
+      summary: Đăng ký tài khoản giao dịch
+      tags:
+      - registered_accounts
 schemes:
 - http
 - https
