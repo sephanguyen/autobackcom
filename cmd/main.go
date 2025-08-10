@@ -11,7 +11,6 @@ package main
 import (
 	"context"
 	"log"
-	"net/http"
 	"os"
 
 	_ "autobackcom/docs" // import docs để swagger serve được
@@ -77,5 +76,5 @@ func main() {
 		logrus.Fatal(err)
 	}
 	logrus.Info("Server starting on :8080")
-	log.Fatal(http.ListenAndServe(":8080", nil))
+	log.Fatal(r.Run(":8080"))
 }
