@@ -32,9 +32,9 @@ func (r *OrderRepository) SaveOrder(order models.Order) error {
 // Lấy order mới nhất theo user, exchange, market
 func (r *OrderRepository) GetLatestOrder(ctx context.Context, userID primitive.ObjectID, exchange, market string) (*models.Order, error) {
 	filter := bson.M{
-		"user_id":  userID,
-		"exchange": exchange,
-		"market":   market,
+		"registered_account_id": userID,
+		"exchange":              exchange,
+		"market":                market,
 	}
 	opt := options.FindOne().SetSort(bson.D{{"time", -1}})
 	var order models.Order
