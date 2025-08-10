@@ -21,7 +21,7 @@ func NewBinanceSpotExchange(apiKey, secret string, isTestnet bool) *BinanceSpotE
 	return &BinanceSpotExchange{client: client}
 }
 
-func (b *BinanceSpotExchange) FetchTrades(ctx context.Context, userID primitive.ObjectID, start time.Time) ([]models.Order, error) {
+func (b *BinanceSpotExchange) FetchTrades(ctx context.Context, registedAccountID primitive.ObjectID, start time.Time) ([]models.Order, error) {
 	// Giả sử Client đã được khởi tạo với API key/secret đã giải mã từ user
 	svc := b.client.NewListTradesService()
 	// Có thể cần truyền thêm symbol, startTime, endTime nếu muốn lọc theo thời gian
@@ -32,26 +32,26 @@ func (b *BinanceSpotExchange) FetchTrades(ctx context.Context, userID primitive.
 	svc.Limit(1000)
 	trades, err := svc.Do(ctx)
 	if err != nil {
-		log.Printf("Failed to fetch Binance spot trade history for user %s: %v", userID, err)
+		log.Printf("Failed to fetch Binance spot trade history for user %s: %v", registedAccountID, err)
 		return nil, err
 	}
 	var orders []models.Order
 	for _, trade := range trades {
 
 		order := models.Order{
-			ID:              fmt.Sprintf("%d", trade.ID),
-			UserID:          userID,
-			Symbol:          trade.Symbol,
-			OrderID:         trade.OrderID,
-			OrderListId:     trade.OrderListId,
-			Price:           trade.Price,
-			Quantity:        trade.Quantity,
-			QuoteQuantity:   trade.QuoteQuantity,
-			Commission:      trade.Commission,
-			CommissionAsset: trade.CommissionAsset,
-			Time:            time.UnixMilli(trade.Time),
-			Exchange:        "binance",
-			Market:          "spot",
+			ID:                  fmt.Sprintf("%d", trade.ID),
+			RegisteredAccountID: registedAccountID,
+			Symbol:              trade.Symbol,
+			OrderID:             trade.OrderID,
+			OrderListId:         trade.OrderListId,
+			Price:               trade.Price,
+			Quantity:            trade.Quantity,
+			QuoteQuantity:       trade.QuoteQuantity,
+			Commission:          trade.Commission,
+			CommissionAsset:     trade.CommissionAsset,
+			Time:                time.UnixMilli(trade.Time),
+			Exchange:            "binance",
+			Market:              "spot",
 		}
 		orders = append(orders, order)
 	}

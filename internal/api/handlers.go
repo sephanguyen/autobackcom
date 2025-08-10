@@ -1,18 +1,16 @@
 package api
 
 import (
-	"context"
-	"encoding/json"
-	"net/http"
-	"os"
-	"strings"
-	"time"
-
+	"autobackcom/internal/api/dto"
 	"autobackcom/internal/models"
 	"autobackcom/internal/repositories"
 	"autobackcom/internal/services"
 	"autobackcom/internal/utils"
+	"os"
+	"strings"
+	"time"
 
+	"github.com/gin-gonic/gin"
 	"github.com/golang-jwt/jwt/v5"
 	"github.com/sirupsen/logrus"
 	"go.mongodb.org/mongo-driver/bson/primitive"
@@ -29,12 +27,13 @@ func GenerateToken(userID string) (string, error) {
 	return token.SignedString(jwtSecret)
 }
 
-func JWTAuthMiddleware(next http.Handler) http.Handler {
-	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		authHeader := r.Header.Get("Authorization")
+func JWTAuthMiddleware() gin.HandlerFunc {
+	return func(c *gin.Context) {
+		authHeader := c.GetHeader("Authorization")
 		if authHeader == "" {
 			logrus.Error("Missing authorization header")
-			http.Error(w, "Missing authorization header", http.StatusUnauthorized)
+			c.JSON(401, gin.H{"error": "Missing authorization header"})
+			c.Abort()
 			return
 		}
 		tokenString := strings.TrimPrefix(authHeader, "Bearer ")
@@ -43,49 +42,53 @@ func JWTAuthMiddleware(next http.Handler) http.Handler {
 		})
 		if err != nil || !token.Valid {
 			logrus.WithField("error", err).Error("Invalid token")
-			http.Error(w, "Invalid token", http.StatusUnauthorized)
+			c.JSON(401, gin.H{"error": "Invalid token"})
+			c.Abort()
 			return
 		}
 		claims, ok := token.Claims.(*jwt.RegisteredClaims)
 		if !ok {
 			logrus.Error("Invalid token claims")
-			http.Error(w, "Invalid token claims", http.StatusUnauthorized)
+			c.JSON(401, gin.H{"error": "Invalid token claims"})
+			c.Abort()
 			return
 		}
-		ctx := context.WithValue(r.Context(), "userID", claims.Subject)
-		next.ServeHTTP(w, r.WithContext(ctx))
-	})
+		c.Set("userID", claims.Subject)
+		c.Next()
+	}
 }
 
-func RegisterHandler(userRepo *repositories.UserRepository, tradeHistoryService *services.TradeHistoryService) http.HandlerFunc {
-	return func(w http.ResponseWriter, r *http.Request) {
-		var req struct {
-			Username  string `json:"username"`
-			Exchange  string `json:"exchange"`
-			Market    string `json:"market"`
-			APIKey    string `json:"apikey"`
-			Secret    string `json:"secret"`
-			IsTestnet bool   `json:"isTestnet"`
-		}
-		err := json.NewDecoder(r.Body).Decode(&req)
-		if err != nil {
+// RegisterHandler godoc
+// @Summary Đăng ký tài khoản giao dịch
+// @Description Đăng ký tài khoản để lấy lịch sử giao dịch
+// @Tags registered_accounts
+// @Accept json
+// @Produce json
+// @Param body body dto.RegisterRequest true "Thông tin đăng ký"
+// @Success 201 {object} dto.APIResponse{data=dto.RegisterResponse}
+// @Failure 400,500 {object} dto.APIResponse
+// @Router /register [post]
+func RegisterHandler(userRepo *repositories.RegisteredAccountRepository, tradeHistoryService *services.TradeHistoryService) gin.HandlerFunc {
+	return func(c *gin.Context) {
+		var req dto.RegisterRequest
+		if err := c.ShouldBindJSON(&req); err != nil {
 			logrus.WithField("error", err).Error("Invalid request")
-			http.Error(w, "Yêu cầu không hợp lệ", http.StatusBadRequest)
+			c.JSON(400, utils.Error("Yêu cầu không hợp lệ"))
 			return
 		}
 		encryptedAPIKey, err := utils.Encrypt(req.APIKey)
 		if err != nil {
 			logrus.WithField("error", err).Error("Encryption error")
-			http.Error(w, "Lỗi mã hóa", http.StatusInternalServerError)
+			c.JSON(500, utils.Error("Lỗi mã hóa"))
 			return
 		}
 		encryptedSecret, err := utils.Encrypt(req.Secret)
 		if err != nil {
 			logrus.WithField("error", err).Error("Encryption error")
-			http.Error(w, "Lỗi mã hóa", http.StatusInternalServerError)
+			c.JSON(500, utils.Error("Lỗi mã hóa"))
 			return
 		}
-		user := models.User{
+		account := models.RegisteredAccount{
 			ID:              primitive.NewObjectID(),
 			Username:        req.Username,
 			Exchange:        req.Exchange,
@@ -94,68 +97,81 @@ func RegisterHandler(userRepo *repositories.UserRepository, tradeHistoryService 
 			EncryptedSecret: encryptedSecret,
 			IsTestnet:       req.IsTestnet,
 		}
-		err = userRepo.SaveUser(user)
+		err = userRepo.SaveRegisteredAccount(account)
 		if err != nil {
 			logrus.WithFields(logrus.Fields{
-				"user":  user.Username,
+				"user":  account.Username,
 				"error": err,
 			}).Error("Failed to save user")
-			http.Error(w, "Lỗi cơ sở dữ liệu", http.StatusInternalServerError)
+			c.JSON(500, utils.Error("Lỗi cơ sở dữ liệu"))
 			return
 		}
-		w.WriteHeader(http.StatusCreated)
-		w.Header().Set("Content-Type", "application/json")
-		json.NewEncoder(w).Encode(map[string]string{"userID": user.ID.Hex()})
-		logrus.WithField("user", user.Username).Info("User registered successfully")
+		resp := dto.RegisterResponse{RegisteredAccountID: account.ID.Hex(), Status: "ok"}
+		c.JSON(201, utils.Success(resp))
+		logrus.WithField("user", account.Username).Info("User registered successfully")
 	}
 }
 
-func FetchAllTradesForUser(tradeHistoryService *services.TradeHistoryService) http.HandlerFunc {
-	return func(w http.ResponseWriter, r *http.Request) {
-
-		err := tradeHistoryService.FetchAllUserTradeHistory(r.Context())
+// FetchAllTradesForUser godoc
+// @Summary Lấy toàn bộ lịch sử giao dịch của các tài khoản đã đăng ký
+// @Description Trigger lấy lịch sử giao dịch cho tất cả registered_accounts
+// @Tags trades
+// @Produce json
+// @Success 200 {object} dto.APIResponse{data=dto.FetchAllTradesResponse}
+// @Failure 500 {object} dto.APIResponse
+// @Router /fetch-trades-all-user [post]
+func FetchAllTradesForUser(tradeHistoryService *services.TradeHistoryService) gin.HandlerFunc {
+	return func(c *gin.Context) {
+		err := tradeHistoryService.FetchAllAccountTradeHistory(c.Request.Context())
 		if err != nil {
 			logrus.WithFields(logrus.Fields{
 				"error": err,
 			}).Error("Failed to fetch trades of users")
-			http.Error(w, "Lỗi lấy danh sách lệnh", http.StatusInternalServerError)
+			c.JSON(500, utils.Error("Lỗi lấy danh sách lệnh"))
 			return
 		}
-		w.Header().Set("Content-Type", "application/json")
-		json.NewEncoder(w).Encode(map[string]string{"status": "ok"})
+		resp := dto.FetchAllTradesResponse{Status: "ok"}
+		c.JSON(200, utils.Success(resp))
 	}
 }
 
-func GetOrdersHandler(userRepo *repositories.UserRepository, orderRepo *repositories.OrderRepository) http.HandlerFunc {
-	return func(w http.ResponseWriter, r *http.Request) {
-		var req struct {
-			UserID string `json:"userID"`
-		}
-		err := json.NewDecoder(r.Body).Decode(&req)
-		if err != nil {
+// GetOrdersHandler godoc
+// @Summary Lấy danh sách lệnh của tài khoản
+// @Description Lấy danh sách order theo registered_account_id
+// @Tags orders
+// @Accept json
+// @Produce json
+// @Param body body dto.GetOrdersRequest true "ID tài khoản đã đăng ký"
+// @Success 200 {object} dto.APIResponse{data=dto.GetOrdersResponse}
+// @Failure 400,500 {object} dto.APIResponse
+// @Router /orders [post]
+func GetOrdersHandler(userRepo *repositories.RegisteredAccountRepository, orderRepo *repositories.OrderRepository) gin.HandlerFunc {
+	return func(c *gin.Context) {
+		var req dto.GetOrdersRequest
+		if err := c.ShouldBindJSON(&req); err != nil {
 			logrus.WithField("error", err).Error("Invalid request")
-			http.Error(w, "Yêu cầu không hợp lệ", http.StatusBadRequest)
+			c.JSON(400, utils.Error("Yêu cầu không hợp lệ"))
 			return
 		}
-		id, err := primitive.ObjectIDFromHex(req.UserID)
+		id, err := primitive.ObjectIDFromHex(req.RegisteredAccountID)
 		if err != nil {
-			logrus.WithField("error", err).Error("Invalid user ID")
-			http.Error(w, "ID người dùng không hợp lệ", http.StatusBadRequest)
+			logrus.WithField("error", err).Error("Invalid registered account ID")
+			c.JSON(400, utils.Error("ID tài khoản không hợp lệ"))
 			return
 		}
 		orders, err := orderRepo.GetOrdersByUserID(id)
 		if err != nil {
 			logrus.WithFields(logrus.Fields{
-				"user":  req.UserID,
-				"error": err,
+				"registered_account_id": req.RegisteredAccountID,
+				"error":                 err,
 			}).Error("Failed to get orders")
-			http.Error(w, "Lỗi lấy danh sách lệnh", http.StatusInternalServerError)
+			c.JSON(500, utils.Error("Lỗi lấy danh sách lệnh"))
 			return
 		}
-		w.Header().Set("Content-Type", "application/json")
-		json.NewEncoder(w).Encode(map[string]interface{}{
-			"status": "ok",
-			"data":   orders,
-		})
+		resp := dto.GetOrdersResponse{
+			Status: "ok",
+			Data:   orders,
+		}
+		c.JSON(200, utils.Success(resp))
 	}
 }

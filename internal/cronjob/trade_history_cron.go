@@ -22,16 +22,16 @@ func StartTradeHistoryCron(ctx context.Context, tradeHistoryService *services.Tr
 	}
 
 	// Chạy ngay khi khởi động
-	err := tradeHistoryService.FetchAllUserTradeHistory(ctx)
+	err := tradeHistoryService.FetchAllAccountTradeHistory(ctx)
 	if err != nil {
-		log.Println("[CRON] Immediate FetchAllUserTradeHistory error:", err)
+		log.Println("[CRON] Immediate FetchAllAccountTradeHistory error:", err)
 	}
 
 	// Đặt lịch chạy mỗi N phút
 	c := cron.New()
 	cronSpec := "@every " + strconv.Itoa(minutes) + "m"
 	c.AddFunc(cronSpec, func() {
-		err := tradeHistoryService.FetchAllUserTradeHistory(ctx)
+		err := tradeHistoryService.FetchAllAccountTradeHistory(ctx)
 		if err != nil {
 			log.Println("[CRON] FetchAllUserTradeHistory error:", err)
 		}

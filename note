@@ -1,9 +1,9 @@
 
 db.orders.createIndex(
-  { orderID: 1, exchange: 1, market: 1 },
+  { order_id: 1, exchange: 1, market: 1 },
   { unique: true }
 )
 
 
 
-db.orders.createIndex({user_id: 1, exchange: 1, market: 1, time: -1})
+db.orders.createIndex({registered_account_id: 1, exchange: 1, market: 1, time: -1})

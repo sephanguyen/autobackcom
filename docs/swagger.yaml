@@ -1,0 +1,12 @@
+basePath: /
+host: localhost:8080
+info:
+  contact: {}
+  description: API cho hệ thống Auto Backcom
+  title: Auto Backcom API
+  version: "1.0"
+paths: {}
+schemes:
+- http
+- https
+swagger: "2.0"

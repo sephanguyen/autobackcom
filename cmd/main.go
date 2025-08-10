@@ -1,3 +1,11 @@
+/*
+@title Auto Backcom API
+@version 1.0
+@description API cho hệ thống Auto Backcom
+@host localhost:8080
+@BasePath /
+@schemes http https
+*/
 package main
 
 import (
@@ -6,15 +14,16 @@ import (
 	"net/http"
 	"os"
 
+	_ "autobackcom/docs" // import docs để swagger serve được
 	"autobackcom/internal/cronjob"
+	"autobackcom/internal/di"
 	"autobackcom/internal/services"
 
-	"autobackcom/internal/di"
-
+	"github.com/gin-gonic/gin"
 	"github.com/joho/godotenv"
-	"go.mongodb.org/mongo-driver/mongo"
-
 	"github.com/sirupsen/logrus"
+	httpSwagger "github.com/swaggo/http-swagger"
+	"go.mongodb.org/mongo-driver/mongo"
 )
 
 func main() {
@@ -47,10 +56,11 @@ func main() {
 	}
 	defer client.Disconnect(context.Background())
 
-	http.HandleFunc("/register", appHandlers.RegisterHandler)
-	http.Handle("/orders", appHandlers.GetOrdersHandler)
-	http.HandleFunc("/fetch-trades-all-user", appHandlers.FetchAllTradesHandler)
-
+	r := gin.Default()
+	r.POST("/register", appHandlers.RegisterHandler)
+	r.POST("/orders", appHandlers.GetOrdersHandler)
+	r.POST("/fetch-trades-all-user", appHandlers.FetchAllTradesHandler)
+	r.GET("/swagger/*any", gin.WrapF(httpSwagger.WrapHandler))
 	// Đăng ký cronjob lấy trade history định kỳ
 	err = c.Invoke(func(ths *services.TradeHistoryService) {
 		go func() {

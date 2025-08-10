@@ -7,9 +7,9 @@ import (
 	"autobackcom/internal/services"
 	"context"
 	"fmt"
-	"net/http"
 	"os"
 
+	"github.com/gin-gonic/gin"
 	"github.com/sirupsen/logrus"
 	"go.mongodb.org/mongo-driver/mongo"
 	"go.mongodb.org/mongo-driver/mongo/options"
@@ -17,9 +17,9 @@ import (
 )
 
 type AppHandlers struct {
-	RegisterHandler       http.HandlerFunc `name:"register"`
-	GetOrdersHandler      http.HandlerFunc `name:"getOrders"`
-	FetchAllTradesHandler http.HandlerFunc `name:"fetchAllTrades"`
+	RegisterHandler       gin.HandlerFunc `name:"register"`
+	GetOrdersHandler      gin.HandlerFunc `name:"getOrders"`
+	FetchAllTradesHandler gin.HandlerFunc `name:"fetchAllTrades"`
 }
 
 // Provider cho MongoDB client
@@ -33,9 +33,9 @@ func NewMongoClient(uri string) (*mongo.Client, error) {
 	return client, nil
 }
 
-// Provider cho UserRepository
-func NewUserRepository(client *mongo.Client) *repositories.UserRepository {
-	return repositories.NewUserRepository(client, "exchange_db", "users")
+// Provider cho RegisteredAccountRepository
+func NewRegisteredAccountRepository(client *mongo.Client) *repositories.RegisteredAccountRepository {
+	return repositories.NewRegisteredAccountRepository(client, "exchange_db", "registered_accounts")
 }
 
 // Provider cho OrderRepository
@@ -46,23 +46,23 @@ func NewOrderRepository(client *mongo.Client) *repositories.OrderRepository {
 // Provider cho ExchangeService (nếu cần gom fetcher vào map)
 type ExchangeServiceDeps struct {
 	dig.In
-	UserRepo              *repositories.UserRepository
+	RegisteredAccountRepo *repositories.RegisteredAccountRepository
 	OrderRepo             *repositories.OrderRepository
 	BinanceSpotFetcher    exchanges.ExchangeFetcher `name:"binanceSpot"`
 	BinanceFuturesFetcher exchanges.ExchangeFetcher `name:"binanceFutures"`
 }
 
 // Provider cho RegisterHandler
-func NewRegisterHandler(userRepo *repositories.UserRepository, tradeHistoryService *services.TradeHistoryService) http.HandlerFunc {
-	return api.RegisterHandler(userRepo, tradeHistoryService)
+func NewRegisterHandler(accountRepo *repositories.RegisteredAccountRepository, tradeHistoryService *services.TradeHistoryService) gin.HandlerFunc {
+	return api.RegisterHandler(accountRepo, tradeHistoryService)
 }
 
 // Provider cho GetOrdersHandler
-func NewGetOrdersHandler(userRepo *repositories.UserRepository, orderRepo *repositories.OrderRepository) http.HandlerFunc {
-	return api.GetOrdersHandler(userRepo, orderRepo)
+func NewGetOrdersHandler(accountRepo *repositories.RegisteredAccountRepository, orderRepo *repositories.OrderRepository) gin.HandlerFunc {
+	return api.GetOrdersHandler(accountRepo, orderRepo)
 }
 
-func NewFetchAllTradeOfUsersHandler(tradeHistoryService *services.TradeHistoryService) http.HandlerFunc {
+func NewFetchAllTradeOfUsersHandler(tradeHistoryService *services.TradeHistoryService) gin.HandlerFunc {
 	return api.FetchAllTradesForUser(tradeHistoryService)
 }
 
@@ -76,20 +76,20 @@ func BuildContainer() (*dig.Container, error) {
 		return uri
 	})
 	c.Provide(NewMongoClient)
-	c.Provide(NewUserRepository)
+	c.Provide(NewRegisteredAccountRepository)
 	c.Provide(NewOrderRepository)
 	c.Provide(services.NewClientManagerService)
-	c.Provide(func(userRepo *repositories.UserRepository, orderRepo *repositories.OrderRepository, clientManager *services.ClientManagerService) *services.TradeHistoryService {
-		return services.NewTradeHistoryService(userRepo, orderRepo, clientManager)
+	c.Provide(func(accountRepo *repositories.RegisteredAccountRepository, orderRepo *repositories.OrderRepository, clientManager *services.ClientManagerService) *services.TradeHistoryService {
+		return services.NewTradeHistoryService(accountRepo, orderRepo, clientManager)
 	})
 	c.Provide(NewRegisterHandler, dig.Name("register"))
 	c.Provide(NewGetOrdersHandler, dig.Name("getOrders"))
 	c.Provide(NewFetchAllTradeOfUsersHandler, dig.Name("fetchAllTrades"))
 	type appHandlerIn struct {
 		dig.In
-		RegisterHandler       http.HandlerFunc `name:"register"`
-		GetOrdersHandler      http.HandlerFunc `name:"getOrders"`
-		FetchAllTradesHandler http.HandlerFunc `name:"fetchAllTrades"`
+		RegisterHandler       gin.HandlerFunc `name:"register"`
+		GetOrdersHandler      gin.HandlerFunc `name:"getOrders"`
+		FetchAllTradesHandler gin.HandlerFunc `name:"fetchAllTrades"`
 	}
 	c.Provide(func(in appHandlerIn) *AppHandlers {
 		return &AppHandlers{

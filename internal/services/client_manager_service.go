@@ -49,7 +49,7 @@ func (s *ClientManagerService) getUserMutex(userID string) *sync.RWMutex {
 }
 
 // createClient tạo client dựa trên exchange và market
-func createClient(exchange, market string, user models.User) (exchanges.ExchangeFetcher, error) {
+func createClient(exchange, market string, user models.RegisteredAccount) (exchanges.ExchangeFetcher, error) {
 	apiKey, err := utils.Decrypt(user.EncryptedAPIKey)
 	if err != nil {
 		log.Printf("Decrypt key error for user %s: %v", user.Username, err)
@@ -77,7 +77,7 @@ func createClient(exchange, market string, user models.User) (exchanges.Exchange
 }
 
 // GetOrCreateClient lấy hoặc tạo client cho user
-func (s *ClientManagerService) GetOrCreateClient(user models.User) (*ClientsInfo, error) {
+func (s *ClientManagerService) GetOrCreateClient(user models.RegisteredAccount) (*ClientsInfo, error) {
 	cacheKey := user.ID.Hex()
 	clientKey := fmt.Sprintf("%s:%s", user.Exchange, user.Market)
 	userMutex := s.getUserMutex(cacheKey)
