@@ -54,7 +54,7 @@ func (r *OrderRepository) SaveOrders(orders []models.Order) error {
 	for i, order := range orders {
 		model := mongo.NewUpdateOneModel().
 			SetFilter(bson.M{
-				"orderID":  order.OrderID,
+				"order_id": order.OrderID,
 				"exchange": order.Exchange,
 				"market":   order.Market,
 			}).
