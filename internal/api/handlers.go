@@ -76,6 +76,18 @@ func RegisterHandler(userRepo *repositories.RegisteredAccountRepository, tradeHi
 			c.JSON(400, utils.Error("Yêu cầu không hợp lệ"))
 			return
 		}
+		// Validate Exchange and Market
+		if !req.Exchange.IsValid() {
+			logrus.WithField("exchange", req.Exchange).Error("Invalid exchange type")
+			c.JSON(400, utils.Error("Exchange không hợp lệ"))
+			return
+		}
+		if !req.Market.IsValid() {
+			logrus.WithField("market", req.Market).Error("Invalid market type")
+			c.JSON(400, utils.Error("Market không hợp lệ"))
+			return
+		}
+
 		encryptedAPIKey, err := utils.Encrypt(req.APIKey)
 		if err != nil {
 			logrus.WithField("error", err).Error("Encryption error")
@@ -91,8 +103,8 @@ func RegisterHandler(userRepo *repositories.RegisteredAccountRepository, tradeHi
 		account := models.RegisteredAccount{
 			ID:              primitive.NewObjectID(),
 			Username:        req.Username,
-			Exchange:        req.Exchange,
-			Market:          req.Market,
+			Exchange:        string(req.Exchange),
+			Market:          string(req.Market),
 			EncryptedAPIKey: encryptedAPIKey,
 			EncryptedSecret: encryptedSecret,
 			IsTestnet:       req.IsTestnet,

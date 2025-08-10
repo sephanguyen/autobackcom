@@ -183,6 +183,15 @@ const docTemplate = `{
                 }
             }
         },
+        "dto.ExchangeType": {
+            "type": "string",
+            "enum": [
+                "binance"
+            ],
+            "x-enum-varnames": [
+                "ExchangeBinance"
+            ]
+        },
         "dto.FetchAllTradesResponse": {
             "type": "object",
             "properties": {
@@ -208,6 +217,17 @@ const docTemplate = `{
                 }
             }
         },
+        "dto.MarketType": {
+            "type": "string",
+            "enum": [
+                "spot",
+                "futures"
+            ],
+            "x-enum-varnames": [
+                "MarketSpot",
+                "MarketFutures"
+            ]
+        },
         "dto.RegisterRequest": {
             "type": "object",
             "properties": {
@@ -215,13 +235,13 @@ const docTemplate = `{
                     "type": "string"
                 },
                 "exchange": {
-                    "type": "string"
+                    "$ref": "#/definitions/dto.ExchangeType"
                 },
                 "isTestnet": {
                     "type": "boolean"
                 },
                 "market": {
-                    "type": "string"
+                    "$ref": "#/definitions/dto.MarketType"
                 },
                 "secret": {
                     "type": "string"

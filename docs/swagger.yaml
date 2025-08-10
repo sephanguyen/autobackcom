@@ -8,6 +8,12 @@ definitions:
       status:
         type: string
     type: object
+  dto.ExchangeType:
+    enum:
+    - binance
+    type: string
+    x-enum-varnames:
+    - ExchangeBinance
   dto.FetchAllTradesResponse:
     properties:
       status:
@@ -24,16 +30,24 @@ definitions:
       status:
         type: string
     type: object
+  dto.MarketType:
+    enum:
+    - spot
+    - futures
+    type: string
+    x-enum-varnames:
+    - MarketSpot
+    - MarketFutures
   dto.RegisterRequest:
     properties:
       apikey:
         type: string
       exchange:
-        type: string
+        $ref: '#/definitions/dto.ExchangeType'
       isTestnet:
         type: boolean
       market:
-        type: string
+        $ref: '#/definitions/dto.MarketType'
       secret:
         type: string
       username:

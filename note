@@ -1,9 +1,16 @@
-
 db.orders.createIndex(
   { order_id: 1, exchange: 1, market: 1 },
   { unique: true }
-)
+);
 
+db.orders.createIndex({
+  registered_account_id: 1,
+  exchange: 1,
+  market: 1,
+  time: -1,
+});
 
-
-db.orders.createIndex({registered_account_id: 1, exchange: 1, market: 1, time: -1})
+db.registered_accounts.createIndex(
+  { username: 1, exchange: 1, market: 1, is_testnet: 1 },
+  { unique: true }
+);
