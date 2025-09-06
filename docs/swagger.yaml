@@ -60,7 +60,7 @@ definitions:
       status:
         type: string
     type: object
-host: localhost:8080
+host: 31.97.190.90:8080
 info:
   contact: {}
   description: API cho hệ thống Auto Backcom

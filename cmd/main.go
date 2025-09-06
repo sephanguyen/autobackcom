@@ -2,7 +2,7 @@
 @title Auto Backcom API
 @version 1.0
 @description API cho hệ thống Auto Backcom
-@host localhost:8080
+@host 31.97.190.90:8080
 @BasePath /
 @schemes http https
 */

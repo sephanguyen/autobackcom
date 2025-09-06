@@ -10,7 +10,7 @@
         "contact": {},
         "version": "1.0"
     },
-    "host": "localhost:8080",
+    "host": "31.97.190.90:8080",
     "basePath": "/",
     "paths": {
         "/fetch-trades-all-user": {
