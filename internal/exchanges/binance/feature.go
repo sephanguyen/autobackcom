@@ -32,7 +32,7 @@ func (b *BinanceFeatureExchange) FetchTrades(ctx context.Context, registedAccoun
 	svc.Limit(1000)
 	trades, err := svc.Do(ctx)
 	if err != nil {
-		log.Printf("Failed to fetch Binance spot trade history for user %s: %v", registedAccountID, err)
+		log.Printf("Failed to fetch Binance features trade history for user %s: %v", registedAccountID, err)
 		return nil, err
 	}
 	var orders []models.Order
