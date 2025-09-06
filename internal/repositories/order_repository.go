@@ -92,7 +92,7 @@ func (r *OrderRepository) SaveOrders(orders []models.Order) error {
 
 func (r *OrderRepository) GetOrdersByUserID(userID primitive.ObjectID) ([]models.Order, error) {
 	var orders []models.Order
-	cursor, err := r.collection.Find(context.Background(), bson.M{"user_id": userID})
+	cursor, err := r.collection.Find(context.Background(), bson.M{"registered_account_id": userID})
 	if err != nil {
 		logrus.WithField("error", err).Error("Failed to find orders by userID")
 		return nil, err
