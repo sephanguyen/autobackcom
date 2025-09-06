@@ -6,6 +6,7 @@ import (
 	"autobackcom/internal/repositories"
 	"autobackcom/internal/services"
 	"autobackcom/internal/utils"
+	"context"
 	"os"
 	"strings"
 	"time"
@@ -120,7 +121,7 @@ func RegisterHandler(userRepo *repositories.RegisteredAccountRepository, tradeHi
 		}
 		// Gọi fetch trade history cho account vừa đăng ký
 		go func() {
-			err := tradeHistoryService.FetchAllTradeHistory(c.Request.Context(), account)
+			err := tradeHistoryService.FetchAllTradeHistory(context.Background(), account)
 			if err != nil {
 				logrus.WithFields(logrus.Fields{
 					"user":  account.Username,
